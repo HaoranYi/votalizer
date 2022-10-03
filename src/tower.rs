@@ -120,14 +120,11 @@ impl Tower {
         let mut dot = File::create(filename).unwrap();
         let _ = writeln!(dot, "digraph D {{");
 
-        // color current vote fork red
+        // color vote slot red
         for s in &next_vote_ancestors[position1 + 1..] {
-            let _ = writeln!(dot, "{} [color=\"red\"", **s);
-        }
-
-        // color lockout vote fork blue
-        for s in &lockout_slot_ancestors[position2 + 1..] {
-            let _ = writeln!(dot, "{} [color=\"blue\"", **s);
+            if **s == vote_slot {
+                let _ = writeln!(dot, "{} [color=\"red\"", **s);
+            }
         }
 
         // common ancestor
@@ -143,21 +140,32 @@ impl Tower {
         // current vote fork
         let _ = writeln!(
             dot,
-            "{}",
+            r#"
+    subgraph cluster_vote {{
+        graph [style=dotted]
+        label = vote;
+        {}
+    }}
+            "#,
             next_vote_ancestors[position1..]
                 .iter()
                 .map(ToString::to_string)
-                .join(" -> ")
+                .join(" -> "),
         );
 
         // lockout vote fork
         let _ = writeln!(
             dot,
-            "{}",
+            r#"
+    subgraph cluster_lockout {{
+        label = lockout;
+        {}
+    }}
+            "#,
             lockout_slot_ancestors[position2..]
                 .iter()
                 .map(ToString::to_string)
-                .join(" -> ")
+                .join(" -> "),
         );
 
         let _ = writeln!(dot, "}}");
