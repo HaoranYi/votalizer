@@ -1,0 +1,38 @@
+digraph D {
+
+  153103884 [color="red"]
+  153103885 [color="red"]
+  153103886 [color="red"]
+  153103887 [color="red"]
+  153103892 [color="red"]
+
+  subgraph cluster_lockout {
+    label = lockout;
+    153103880 -> 153103881 -> 153103882 -> 153103883 -> 153103888 -> 153103889 -> 153103890 -> 153103891 -> 153103895
+  }
+
+  subgraph cluster_vote {
+    graph [style=dotted]
+    label = vote;
+    153103884 -> 153103885 -> 153103886 -> 153103887 -> 153103892
+  }
+  
+  153103878 -> 153103879
+  153103879 -> 153103880
+  153103879 -> 153103884
+
+  vote_153103880 [shape=box,color="blue",label="vote tx for 153103878, 153103879 [5Ac6g]"];
+  vote_153103880 -> 153103880 [style=dashed, color=grey,arrowhead=none]
+
+  vote_153103882 [shape=box,color="blue",label="vote tx for 153103880 [KKZ6B]"];
+  vote_153103882 -> 153103882 [style=dashed, color=grey,arrowhead=none]
+
+  vote_153103887 [shape=box,color="blue",label="vote tx for 153103884 [3Q9UX]"];
+  vote_153103887 -> 153103887 [style=dashed, color=grey,arrowhead=none]
+
+  vote_153103889 [shape=box,color="blue",label="vote tx for 153103888 [3nWhz]"];
+  vote_153103889 -> 153103889 [style=dashed, color=grey,arrowhead=none]
+
+  vote_153103892 [shape=box,color="red",penwidth=5 label="vote tx for 153103885, 153103886, 153103887 [YejCo]"];
+  vote_153103892 -> 153103892 [style=dashed, color=grey,arrowhead=none]
+}
