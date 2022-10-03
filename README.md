@@ -26,5 +26,4 @@ and by default the `votalizer` will already attempt to connect to `localhost`.
 
 
 ### Example 
-![Alt text](./controllers_brief.svg)
 <img src="./example/vote_violation.svg">
