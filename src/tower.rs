@@ -3,6 +3,7 @@ use {
     log::*,
     solana_sdk::{clock::Slot, pubkey::Pubkey, signature::Signature},
     solana_vote_program::vote_state::{Lockout, MAX_LOCKOUT_HISTORY},
+    std::fs::File,
     std::{
         collections::{BTreeMap, HashSet, VecDeque},
         fmt::Write,
@@ -10,7 +11,6 @@ use {
 };
 
 pub type Incident = String;
-
 pub struct Tower {
     votes: VecDeque<(Lockout, Signature)>,
     root_slot: Option<Slot>,
@@ -62,6 +62,105 @@ impl Tower {
                 v.0.confirmation_count += 1;
             }
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn write_dot_file(
+        &self,
+        vote_account_address: &Pubkey,
+        vote_slot: Slot,
+        signature: &Signature,
+        slot_ancestors: &BTreeMap<Slot, HashSet<Slot>>,
+        root_slot: Slot,
+        last_lockout: &Lockout,
+        next_vote_ancestors: &HashSet<Slot>,
+    ) {
+        let filename = format!("{}_{}_{}.dot", vote_account_address, vote_slot, signature);
+
+        let next_vote_ancestors = next_vote_ancestors
+            .iter()
+            .filter(|slot| **slot >= root_slot)
+            .collect::<HashSet<_>>();
+
+        let lockout_slot_ancestors = slot_ancestors
+            .get(&last_lockout.slot)
+            .unwrap_or_else(|| {
+                panic!(
+                    "last lockout slot {} not found in slot ancestors",
+                    last_lockout.slot
+                );
+            })
+            .iter()
+            .filter(|slot| **slot >= root_slot)
+            .collect::<HashSet<_>>();
+
+        let common_ancestors = next_vote_ancestors
+            .intersection(&lockout_slot_ancestors)
+            .collect::<HashSet<_>>();
+
+        let max = common_ancestors.into_iter().max().unwrap();
+
+        let mut next_vote_ancestors = next_vote_ancestors.iter().copied().collect::<Vec<_>>();
+        next_vote_ancestors.sort();
+        next_vote_ancestors.reverse();
+
+        let position1 = next_vote_ancestors.iter().position(|x| x == max).unwrap();
+
+        let mut lockout_slot_ancestors = lockout_slot_ancestors.iter().copied().collect::<Vec<_>>();
+        lockout_slot_ancestors.sort();
+        lockout_slot_ancestors.reverse();
+
+        let position2 = lockout_slot_ancestors
+            .iter()
+            .position(|x| x == max)
+            .unwrap();
+
+        // write dot file
+        use std::io::Write;
+        let mut dot = File::create(filename).unwrap();
+        let _ = writeln!(dot, "digraph D {{");
+
+        // color current vote fork red
+        for s in &next_vote_ancestors[position1 + 1..] {
+            let _ = writeln!(dot, "{} [color=\"red\"", **s);
+        }
+
+        // color lockout vote fork blue
+        for s in &lockout_slot_ancestors[position2 + 1..] {
+            let _ = writeln!(dot, "{} [color=\"blue\"", **s);
+        }
+
+        // common ancestor
+        let _ = writeln!(
+            dot,
+            "{}",
+            next_vote_ancestors[..position1]
+                .iter()
+                .map(ToString::to_string)
+                .join(" -> ")
+        );
+
+        // current vote fork
+        let _ = writeln!(
+            dot,
+            "{}",
+            next_vote_ancestors[position1..]
+                .iter()
+                .map(ToString::to_string)
+                .join(" -> ")
+        );
+
+        // lockout vote fork
+        let _ = writeln!(
+            dot,
+            "{}",
+            lockout_slot_ancestors[position2..]
+                .iter()
+                .map(ToString::to_string)
+                .join(" -> ")
+        );
+
+        let _ = writeln!(dot, "}}");
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -224,6 +323,15 @@ impl Tower {
                             last_lockout,
                             next_vote_ancestors,
                         ));
+                        self.write_dot_file(
+                            vote_account_address,
+                            vote_slot,
+                            signature,
+                            slot_ancestors,
+                            root_slot,
+                            last_lockout,
+                            next_vote_ancestors,
+                        );
                     }
                 }
             } else {
