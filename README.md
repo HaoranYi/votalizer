@@ -23,3 +23,8 @@ and `--rpc-pubsub-enable-vote-subscription` flags.
 
 It's easiest if you just run the `votalizer` on the same host as your RPC node,
 and by default the `votalizer` will already attempt to connect to `localhost`.
+
+
+### Example 
+![Alt text](./controllers_brief.svg)
+<img src="./example/vote_violation.svg">
